@@ -8,43 +8,27 @@ object ComputationPrinter {
 
     def go(computation: Computation[F]): String =
       computation match {
-        case Pure(p) => p.toString
-        case Add(left, right) => s"${go(left)}+${go(right)}"
+        case Pure(p)               => p.toString
+        case Add(left, right)      => s"${go(left)}+${go(right)}"
         case Subtract(left, right) => s"${go(left)}-${go(right)}"
-        case m: Multiply[F] => multiplyHelper(m)
-        case d: Divide[F] => divideHelper(d)
+        case m: Multiply[F]        => multiplyHelper(m)
+        case d: Divide[F]          => divideHelper(d)
+      }
+
+    def helper(computation: Computation[F]): String =
+      computation match {
+        case _: Pure[F] => go(computation)
+        case _          => s"(${go(computation)})"
       }
 
     def multiplyHelper(m: Multiply[F]): String = {
       val Multiply(left, right) = m
-
-      val leftString = left match {
-        case _: Pure[F] => go(left)
-        case _          => s"(${go(left)})"
-      }
-
-      val rightString = right match {
-        case _: Pure[F] => go(right)
-        case _          => s"(${go(right)})"
-      }
-
-      s"$leftString*$rightString"
+      s"${helper(left)}*${helper(right)}"
     }
 
     def divideHelper(d: Divide[F]): String = {
       val Divide(left, right) = d
-
-      val leftString = left match {
-        case _: Pure[F] => go(left)
-        case _          => s"(${go(left)})"
-      }
-
-      val rightString = right match {
-        case _: Pure[F] => go(right)
-        case _          => s"(${go(right)})"
-      }
-
-      s"$leftString/$rightString"
+      s"${helper(left)}/${helper(right)}"
     }
 
     go(computation)
