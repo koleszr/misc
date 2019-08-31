@@ -6,6 +6,8 @@ object LazyAlgorithms {
 
   def fact(n: Int): BigInt = factorial.drop(n).head
 
+  private val outside: (Double, Double, Double) => Boolean = (d1, d2, e) => Math.abs(d1 - d2) >= e
+
   /**
    * Newton-Raphson method using LazyList for approximating square root of {{d}}.
    */
@@ -20,7 +22,22 @@ object LazyAlgorithms {
    */
   def sqrt(d: Double, e: Double): Double = {
     val s = new Sqrt(d)
-    s.approxSqrt.zip(s.approxSqrt.tail).dropWhile { case (pp, p) => Math.abs(pp - p) >= e }.head._2
+    s.approxSqrt.zip(s.approxSqrt.tail).dropWhile { case (pp, p) => outside(pp, p, e) }.head._2
+  }
+
+  /**
+   * Approximated derivative of {{f}} at {{x}}.
+   */
+  private class Derivative(x: Double, f: Double => Double) {
+    private val simpleDerivative: Double => (Double, Double) = h => ((f(x + h) - f(x)) / h, h)
+
+    val approxDerivative: LazyList[(Double, Double)] =
+      simpleDerivative(0.1) #:: approxDerivative.map { case (_, h) => simpleDerivative(h / 2) }
+  }
+
+  def derivative(x: Double, e: Double)(f: Double => Double): Double = {
+    val d = new Derivative(x, f)
+    d.approxDerivative.zip(d.approxDerivative.tail).dropWhile { case ((pp, _), (p, _)) => outside(pp, p, e) }.head._2._1
   }
 
 }

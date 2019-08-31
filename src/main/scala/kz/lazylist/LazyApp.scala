@@ -16,6 +16,7 @@ object LazyApp extends App {
     (for {
       _ <- factorialApp
       _ <- sqrtApp
+      _ <- derivativeOfXSquaredApp
     } yield ()).fold(_ => 1, _ => 0)
 
   val factorialApp: ZIO[Console, LazyError, Unit] =
@@ -35,6 +36,17 @@ object LazyApp extends App {
       toleranceStr <- getStrLn.mapError(IOError)
       tolerance    <- toleranceStr.toDoubleZio
       _            <- putStrLn(s"Square root of $d = ${sqrt(d, tolerance)}")
+    } yield ()
+
+  val derivativeOfXSquaredApp: ZIO[Console, LazyError, Unit] =
+    for {
+      _            <- putStr("Enter x to calculate the derivative of x ^ 2: ")
+      xStr         <- getStrLn.mapError(IOError)
+      x            <- xStr.toDoubleZio
+      _            <- putStr("Enter a double for tolerance between two approximations: ")
+      toleranceStr <- getStrLn.mapError(IOError)
+      tolerance    <- toleranceStr.toDoubleZio
+      _            <- putStrLn(s"Derivative of x ^ 2 at $x = ${derivative(x, tolerance)(d => d * d)}")
     } yield ()
 
   implicit class StringToNumberZio[R](val str: String) extends AnyVal {
