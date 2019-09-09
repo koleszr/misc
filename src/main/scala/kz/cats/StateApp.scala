@@ -1,10 +1,12 @@
 package kz.cats
 
+import kz.computation.Computation
+import kz.computation.Computation._
+import kz.computation.Computation.syntax._
+
 object StateApp {
 
   import CachedComputation._
-  import Computation._
-  import Computation.syntax._
   import ComputationPrinter.show
 
   def main(args: Array[String]): Unit = {

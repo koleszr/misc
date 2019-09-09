@@ -1,4 +1,4 @@
-package kz.cats
+package kz.computation
 
 sealed trait Computation[F]
 

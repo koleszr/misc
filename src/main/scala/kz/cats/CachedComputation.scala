@@ -1,7 +1,8 @@
 package kz.cats
 
 import cats.data.State
-import kz.cats.Computation.{Add, Divide, Multiply, Pure, Subtract}
+import kz.computation.Computation
+import kz.computation.Computation.{Add, Divide, Multiply, Pure, Subtract}
 
 object CachedComputation {
 

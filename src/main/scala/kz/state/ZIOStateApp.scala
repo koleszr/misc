@@ -5,9 +5,9 @@ import zio.console._
 import zio.Ref
 import zio.ZIO
 
-import kz.cats.Computation
-import kz.cats.Computation._
-import kz.cats.Computation.syntax._
+import kz.computation.Computation
+import kz.computation.Computation._
+import kz.computation.Computation.syntax._
 
 object ZIOStateApp extends App {
 

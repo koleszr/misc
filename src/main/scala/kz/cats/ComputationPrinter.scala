@@ -1,6 +1,7 @@
 package kz.cats
 
-import kz.cats.Computation._
+import kz.computation.Computation
+import kz.computation.Computation._
 
 object ComputationPrinter {
 
