@@ -9,22 +9,21 @@ import kz.computation.Computation
 import kz.computation.Computation._
 import kz.computation.Computation.syntax._
 
-object ZIOStateApp extends App {
+object StateApp extends App {
 
   type ComputationCacheA[F] = ZIO[State[Map[Computation[F], F]], Nothing, F]
 
-  final def run(args: List[String]) =
+  final def run(args: List[String]): ZIO[Console, Nothing, Int] =
     computationLogic.fold(_ => 1, _ => 0)
 
-  val computationLogic =
+  val computationLogic: ZIO[Console, Nothing, Unit] =
     for {
       stateRef    <- Ref.make(Map.empty[Computation[Double], Double])
-      computation = 2d.n + ((2d.n + 4d.n) * (2d.n + 4d.n))
+      computation =  2d.n + ((2d.n + 4d.n) * (2d.n + 4d.n))
       result      <- compute[Double](computation).provide(state.apply(stateRef))
       cache       <- stateRef.get
       _           <- putStrLn(s"Result: $result")
-      _           <- putStrLn("Cache:")
-      _           <- putStrLn(cache.mkString("\t", "\n\t", ""))
+      _           <- putStrLn(s"Cache: ${cache.mkString("\n\t", "\n\t", "")}")
     } yield ()
 
   private def compute[F: Fractional](computation: Computation[F]): ZIO[State[Map[Computation[F], F]], Nothing, F] =
@@ -49,10 +48,10 @@ object ZIOStateApp extends App {
       case None =>
         computation match {
           case Pure(p)                          => state.pure(p)
-          case add @ Add(left, right)           => helper(add, left, right)(num.plus)
+          case add      @ Add(left, right)      => helper(add, left, right)(num.plus)
           case subtract @ Subtract(left, right) => helper(subtract, left, right)(num.minus)
           case multiply @ Multiply(left, right) => helper(multiply, left, right)(num.times)
-          case divide @ Divide(left, right)     => helper(divide, left, right)(num.div)
+          case divide   @ Divide(left, right)   => helper(divide, left, right)(num.div)
         }
     }
   }
