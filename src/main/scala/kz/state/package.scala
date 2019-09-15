@@ -1,10 +1,12 @@
-package kz.state
+package kz
 
 import zio.Ref
 import zio.ZIO
 
 package object state {
-  def apply[S](stateRef: Ref[S]): State[S] = new State.StateLiveImpl(stateRef)
+  def apply[S](ref: Ref[S]): State[S] = new State.Live[S] {
+    override val stateRef: Ref[S] = ref
+  }
 
   def pure[S, A](a: A): ZIO[State[S], Nothing, A] = ZIO.accessM(_.state pure a)
   def set[S](state: S): ZIO[State[S], Nothing, Unit] = ZIO.accessM(_.state set state)

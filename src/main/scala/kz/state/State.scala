@@ -15,7 +15,7 @@ object State {
     def get: ZIO[R, Nothing, S]
   }
 
-  trait StateLive[S] extends State[S] {
+  trait Live[S] extends State[S] {
     def stateRef: Ref[S]
 
     override val state: State.Service[Any, S] = new State.Service[Any, S] {
@@ -25,6 +25,4 @@ object State {
       override def modify(f: S => S): ZIO[Any, Nothing, Unit] = stateRef.modify(s => ((), f(s)))
     }
   }
-
-  class StateLiveImpl[S](override val stateRef: Ref[S]) extends StateLive[S]
 }
