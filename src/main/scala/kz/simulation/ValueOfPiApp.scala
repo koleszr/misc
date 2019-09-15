@@ -16,11 +16,14 @@ object ValueOfPiApp extends App {
     (for {
       _          <- putStr("Enter the number of parallel executions: ")
       n          <- getStrLn.mapError(IOError).flatMap(_.toIntZio)
+
       _          <- putStr("Enter the overall number of iterations: ")
       iterations <- getStrLn.mapError(IOError).flatMap(_.toIntZio)
+
       start      <- currentTime(TimeUnit.MILLISECONDS)
-      pi         <- distanceLessThanOnePar(n, iterations)
+      pi         <- estimatePi(n, iterations)
       end        <- currentTime(TimeUnit.MILLISECONDS)
+
       _          <- putStrLn(s"The estimated value of PI is $pi")
       _          <- putStrLn(s"The calculation took ${end - start}ms")
     } yield ()).fold(_ => 1, _ => 0)
@@ -48,17 +51,15 @@ object ValueOfPiApp extends App {
       })
     } yield count
 
-  def distanceLessThanOnePar(n: Int, iterations: Int): ZIO[Random with Clock, errors.MiscError, Double] =
-    for {
-      x  <- ZIO.collectAllParN(n)(partitionIterations(n, iterations).map(i => distanceLessThanOneChunk(i))).map(_.sum)
-      pi =  x * 4 / iterations.toDouble
-    } yield pi
+  def estimatePi(n: Int, iterations: Int): ZIO[Random with Clock, errors.MiscError, Double] =
+    ZIO.collectAllParN(n)(partitionIterations(n, iterations).map(i => distanceLessThanOneChunk(i)))
+      .map(inside => inside.sum * 4 / iterations.toDouble)
 
   def partitionIterations(n: Int, iterations: Int): List[Int] = {
     val remainder = iterations % n
     val (_, result) = List.fill(n)(iterations / n).foldLeft((remainder, List.empty[Int])) {
       case ((r, acc), x) if r <= 0 => (r, x :: acc)
-      case ((r, acc), x) => (r - 1, (x + 1) :: acc)
+      case ((r, acc), x)           => (r - 1, (x + 1) :: acc)
     }
     result
   }
