@@ -8,7 +8,8 @@ import kz.implicits._
 import zio.clock._
 import zio.clock.Clock
 import zio.console._
-import zio.random._
+import zio.random
+import zio.random.Random
 import zio.{App, Schedule, ZIO}
 
 object ValueOfPiApp extends App {
@@ -20,18 +21,23 @@ object ValueOfPiApp extends App {
       _          <- putStr("Enter the overall number of iterations: ")
       iterations <- getStrLn.mapError(IOError).flatMap(_.toIntZio)
 
-      start      <- currentTime(TimeUnit.MILLISECONDS)
-      pi         <- estimatePi(n, iterations)
-      end        <- currentTime(TimeUnit.MILLISECONDS)
-
+      dtAndPi    <- timed(estimatePi(n, iterations))
+      (dt, pi)   =  dtAndPi
       _          <- putStrLn(s"The estimated value of PI is $pi")
-      _          <- putStrLn(s"The calculation took ${end - start}ms")
+      _          <- putStrLn(s"The calculation of PI took $dt ms")
     } yield ()).fold(_ => 1, _ => 0)
+
+  def timed[R, E, A](program: ZIO[R, E, A]): ZIO[R with Clock, E, (Long, A)] =
+    for {
+      start  <- currentTime(TimeUnit.MILLISECONDS)
+      result <- program
+      stop   <- currentTime(TimeUnit.MILLISECONDS)
+    } yield (stop - start, result)
 
   val randomPairGenerator: ZIO[Random, Nothing, (Double, Double)] =
     for {
-      x <- nextDouble
-      y <- nextDouble
+      x <- random.nextDouble
+      y <- random.nextDouble
     } yield (x, y)
 
   val distanceLessThanOne: ZIO[Random, Nothing, Boolean] =
