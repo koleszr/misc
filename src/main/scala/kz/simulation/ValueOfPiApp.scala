@@ -21,10 +21,8 @@ object ValueOfPiApp extends App {
       _          <- putStr("Enter the overall number of iterations: ")
       iterations <- getStrLn.mapError(IOError).flatMap(_.toIntZio)
 
-      dtAndPi    <- timed(estimatePi(n, iterations))
-      (dt, pi)   =  dtAndPi
-      _          <- putStrLn(s"The estimated value of PI is $pi")
-      _          <- putStrLn(s"The calculation of PI took $dt ms")
+      _          <- timedEstimateOfPi(n, iterations, "Collecting and Folding")(collectPolicyWithCollectAndFold)
+      _          <- timedEstimateOfPi(n, iterations, "Identity and Folding")(collectPolicyWithCollectAndFold)
     } yield ()).fold(_ => 1, _ => 0)
 
   def timed[R, E, A](program: ZIO[R, E, A]): ZIO[R with Clock, E, (Long, A)] =
@@ -47,18 +45,24 @@ object ValueOfPiApp extends App {
       distance =  Math.sqrt(x * x + y * y)
     } yield distance <= 1
 
-  def collectPolicy(n: Int): Schedule[Boolean, List[Boolean]] = Schedule.recurs(n) *> Schedule.collectAll
+  def collectPolicyWithCollectAndFold(n: Int): Schedule[Boolean, Int] =
+    Schedule.recurs(n) *> Schedule.collectAll[Boolean].map(_.foldLeft(0) {
+      case (acc, true)  => acc + 1
+      case (acc, false) => acc
+    })
 
-  def distanceLessThanOneChunk(n: Int): ZIO[Random with Clock, Nothing, Int] =
-    for {
-      count <- distanceLessThanOne repeat collectPolicy(n - 1).map(_.foldLeft(0) {
-        case (acc, true)  => acc + 1
-        case (acc, false) => acc
-      })
-    } yield count
+  def collectPolicyWithFold(n: Int): Schedule[Boolean, Int] =
+    Schedule.recurs(n) *> Schedule.identity.fold(0) {
+      case (acc, true) => acc + 1
+      case (acc, false) => acc
+    }
 
-  def estimatePi(n: Int, iterations: Int): ZIO[Random with Clock, errors.MiscError, Double] =
-    ZIO.collectAllParN(n)(partitionIterations(n, iterations).map(i => distanceLessThanOneChunk(i)))
+  def distanceLessThanOneChunk(n: Int)(policy: Int => Schedule[Boolean, Int]): ZIO[Random with Clock, Nothing, Int] =
+    distanceLessThanOne.repeat(policy(n - 1))
+
+  def estimatePi(n: Int, iterations: Int)
+                (policy: Int => Schedule[Boolean, Int]): ZIO[Random with Clock, errors.MiscError, Double] =
+    ZIO.collectAllParN(n)(partitionIterations(n, iterations).map(i => distanceLessThanOneChunk(i)(policy)))
       .map(inside => inside.sum * 4 / iterations.toDouble)
 
   def partitionIterations(n: Int, iterations: Int): List[Int] = {
@@ -69,4 +73,15 @@ object ValueOfPiApp extends App {
     }
     result
   }
+
+  def timedEstimateOfPi(n: Int, iterations: Int, policyName: String)
+                       (policy: Int => Schedule[Boolean, Int]): ZIO[Console with Random with Clock, errors.MiscError, Unit] =
+    for {
+      _        <- putStrLn(s"Calculating PI with $policyName")
+      dtAndPi  <- timed(estimatePi(n, iterations)(policy))
+      (dt, pi) =  dtAndPi
+      _        <- putStrLn(s"The estimated value of PI is $pi")
+      _        <- putStrLn(s"The calculation of PI took $dt ms")
+    } yield ()
+
 }
