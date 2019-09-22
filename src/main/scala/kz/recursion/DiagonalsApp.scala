@@ -57,20 +57,21 @@ object DiagonalsApp extends App {
             go(tail, head.table :: visited)
           } else {
             val (i, j) = head.position
-
             val nextPos = nextPosition(head.position, size)
-            val diagonals: List[Diagonal] = possibleDiagonals(head.table, head.position)        
-            val solverMetas: List[SolverMeta] = (None :: diagonals.map(Some(_))).map { diagonal =>
-              val table = head.table.zipWithIndex.map { case (row, i1) =>
-                row.zipWithIndex.map { 
-                  case (_, j1) if i == i1 && j == j1 => diagonal
-                  case (elem, _)                     => elem
-
-                }
+            val solverMetas: List[SolverMeta] = 
+              (None :: possibleDiagonals(head.table, head.position).map(Some(_))).map { diagonal =>
+                SolverMeta(
+                  table = head.table.zipWithIndex.map { case (row, i1) =>
+                    row.zipWithIndex.map {
+                      case (_, j1) if i == i1 && j == j1 => diagonal
+                      case (elem, _)                     => elem
+                    }
+                  },
+                  position = nextPos,
+                  diagonalsLeft = diagonal.map(_ => head.diagonalsLeft - 1).getOrElse(head.diagonalsLeft),
+                  cellsLeft = head.cellsLeft - 1
+                )
               }
-              val diagonalsLeft = diagonal.map(_ => head.diagonalsLeft - 1).getOrElse(head.diagonalsLeft)
-              SolverMeta(table, nextPos, diagonalsLeft, head.cellsLeft - 1)
-            }
 
             go(solverMetas ::: tail, visited)
           }
@@ -91,94 +92,45 @@ object DiagonalsApp extends App {
     val (i, j) = position
     val size = table.size
 
-    def inside(m: Int, n: Int, size: Int): Boolean = m >= 0 && n >= 0 && m < size && n < size
+    def isInside(m: Int, n: Int, size: Int): Boolean = m >= 0 && n >= 0 && m < size && n < size
 
-    val leftTopDiagonal: Set[Diagonal] =
-      if (inside(i - 1, j - 1, size)) {
-        table(i - 1)(j - 1) match {
-          case Some(LeftToRight) => Set(RightToLeft)
-          case Some(RightToLeft) => Set(LeftToRight, RightToLeft)
-          case None              => Set(LeftToRight, RightToLeft)
-        }
-      } else {
-        Set(LeftToRight, RightToLeft)
+    def diagonals(i: Int, j: Int)(f: Option[Diagonal] => Set[Diagonal]): Set[Diagonal] =
+      if (isInside(i, j, size)) f(table(i)(j)) else Set(LeftToRight, RightToLeft)
+
+    val leftTopDiagonal: Set[Diagonal] = 
+      diagonals(i - 1, j - 1) {          
+        case Some(LeftToRight) => Set(RightToLeft)
+        case Some(RightToLeft) => Set(LeftToRight, RightToLeft)
+        case None              => Set(LeftToRight, RightToLeft)
       }
 
     val topDiagonal: Set[Diagonal] =
-      if (inside(i - 1, j, size)) {
-        table(i - 1)(j) match {
-          case Some(LeftToRight) => Set(LeftToRight)
-          case Some(RightToLeft) => Set(RightToLeft)
-          case None              => Set(LeftToRight, RightToLeft)
-        }
-      } else {
-        Set(LeftToRight, RightToLeft)
+      diagonals(i - 1, j) {
+        case Some(LeftToRight) => Set(LeftToRight)
+        case Some(RightToLeft) => Set(RightToLeft)
+        case None              => Set(LeftToRight, RightToLeft)
       }
 
     val rightTopDiagonal: Set[Diagonal] =
-      if (inside(i - 1, j + 1, size)) {
-        table(i - 1)(j + 1) match {
-          case Some(LeftToRight) => Set(LeftToRight, RightToLeft)
-          case Some(RightToLeft) => Set(LeftToRight)
-          case None              => Set(LeftToRight, RightToLeft)
-        }
-      } else {
-        Set(LeftToRight, RightToLeft)
+      diagonals(i - 1, j + 1) {
+        case Some(LeftToRight) => Set(LeftToRight, RightToLeft)
+        case Some(RightToLeft) => Set(LeftToRight)
+        case None              => Set(LeftToRight, RightToLeft)
       }
 
+
     val leftDiagonal: Set[Diagonal] =
-      if (inside(i, j - 1, size)) {
-        table(i)(j - 1) match {
-          case Some(LeftToRight) => Set(LeftToRight)
-          case Some(RightToLeft) => Set(RightToLeft)
-          case None              => Set(LeftToRight, RightToLeft)
-        }
-      } else {
-        Set(LeftToRight, RightToLeft)
+      diagonals(i, j - 1) {
+        case Some(LeftToRight) => Set(LeftToRight)
+        case Some(RightToLeft) => Set(RightToLeft)
+        case None              => Set(LeftToRight, RightToLeft)
       }
 
     val rightDiagonal: Set[Diagonal] =
-      if (inside(i, j + 1, size)) {
-        table(i)(j + 1) match {
-          case Some(LeftToRight) => Set(LeftToRight)
-          case Some(RightToLeft) => Set(RightToLeft)
-          case None              => Set(LeftToRight, RightToLeft)
-        }
-      } else {
-        Set(LeftToRight, RightToLeft)
-      }
-
-    val leftBottomDiagonal: Set[Diagonal] =
-      if (inside(i + 1, j - 1, size)) {
-        table(i + 1)(j - 1) match {
-          case Some(LeftToRight) => Set(LeftToRight, RightToLeft)
-          case Some(RightToLeft) => Set(LeftToRight)
-          case None              => Set(LeftToRight, RightToLeft)
-        }
-      } else {
-        Set(LeftToRight, RightToLeft)
-      }
-
-    val bottomDiagonal: Set[Diagonal] =
-      if (inside(i + 1, j, size)) {
-        table(i + 1)(j) match {
-          case Some(LeftToRight) => Set(LeftToRight)
-          case Some(RightToLeft) => Set(RightToLeft)
-          case None              => Set(LeftToRight, RightToLeft)
-        }
-      } else {
-        Set(LeftToRight, RightToLeft)
-      }
-
-    val rightBottomDiagonal: Set[Diagonal] =
-      if (inside(i + 1, j + 1, size)) {
-        table(i + 1)(j + 1) match {
-          case Some(LeftToRight) => Set(RightToLeft)
-          case Some(RightToLeft) => Set(LeftToRight, RightToLeft)
-          case None              => Set(LeftToRight, RightToLeft)
-        }
-      } else {
-        Set(LeftToRight, RightToLeft)
+      diagonals(i, j + 1) {
+        case Some(LeftToRight) => Set(LeftToRight)
+        case Some(RightToLeft) => Set(RightToLeft)
+        case None              => Set(LeftToRight, RightToLeft)
       }
 
     leftTopDiagonal
@@ -186,9 +138,6 @@ object DiagonalsApp extends App {
       .intersect(rightTopDiagonal)
       .intersect(leftDiagonal)
       .intersect(rightDiagonal)
-      .intersect(leftBottomDiagonal)
-      .intersect(bottomDiagonal)
-      .intersect(rightBottomDiagonal)
       .toList
   }
 }
